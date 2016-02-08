@@ -90,6 +90,20 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 	def log_request(code = -1, size = -1):
 		pass
 
+	def localcss(self):
+		self.send_response(200)
+		self.send_header('Content-type', 'text/css;charset=UTF-8')
+		self.end_headers()
+
+		localcss_path = config.db_path + '/local.css'
+		if os.path.exists(localcss_path):
+                        lcss = open(localcss_path, 'r')
+			self.output(lcss.read())
+			lcss.close()
+		else:
+			self.output('')
+
+
 	def css(self):
 		self.send_response(200)
 		self.send_header('Content-type', 'text/css')
@@ -364,6 +378,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 				<head>
 					<link rel="icon" href="http://localhost:18080/favicon.ico" />
 					<link rel="stylesheet" href="/css.css" type="text/css" title="Default Style" media="screen" />
+					<link rel="stylesheet" href="/local.css" type="text/css" title="Local Custom Style" media="screen" />
 					<title>%s</title>
 				</head>
 			<body %s>
@@ -2043,6 +2058,8 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			self.js()
 		elif '/css.css' == self.path:
 			self.css()
+		elif '/local.css' == self.path:
+			self.localcss()
 		else:
 			print "Got unhandled get path %s" % self.path
 			self.root()
