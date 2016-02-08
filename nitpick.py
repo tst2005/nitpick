@@ -396,8 +396,9 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 
 		if not config.readonly:
 			self.output('<div class="command_bar">\n')
-			self.output('<span class="command_button"><form action="/shutdown" method="post">')
-			self.output('<input type="submit" value="Exit Web Interface"/></form></span>\n')
+			if config.allowshutdown:
+				self.output('<span class="command_button"><form action="/shutdown" method="post">')
+				self.output('<input type="submit" value="Exit Web Interface"/></form></span>\n')
 			if config.uncommitted_changes and config.vcs.real:
 				self.output('<span class="command_button"><form action="/commit" method="post">')
 				if 'session' in self.request_args:
@@ -1958,11 +1959,12 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		config.uncommitted_changes = True
 
 	def shutdown_post(self):
-		self.start_doc('Shutting Down')
-		self.output('<p>Nitpick web interface has exited</p>')
-		self.end_doc()
+		if config.allowshutdown:
+			self.start_doc('Shutting Down')
+			self.output('<p>Nitpick web interface has exited</p>')
+			self.end_doc()
 
-		config.endweb = True
+			config.endweb = True
 
 	def commit_post(self):
 		if config.vcs.commit():
@@ -3668,6 +3670,11 @@ def cmd_web(args):
 	if args.readonly:
 		config.readonly = True
 
+	if args.allowshutdown:
+		config.allowshutdown = True
+	else:
+		config.allowshutdown = False
+
 	print 'Starting server on localhost:%d' % args.port
 
 	def get_process_list():
@@ -4069,6 +4076,7 @@ if __name__ == '__main__':
 	web_cmd.add_argument('--browser', help='Command to use to open web interface in browser')
         web_cmd.add_argument('--noopen', action='store_true', help='Do not open a browser')
 	web_cmd.add_argument('--readonly', action='store_true', help='Present a readonly view suitable for a public dump')
+	web_cmd.add_argument('--allowshutdown', action='store_true', help='Allow to shutdown the server over the web-interface')
 	web_cmd.set_defaults(func=cmd_web)
 
 	export_cmd = subcmds.add_parser('export', help='Export given bug')
