@@ -386,7 +386,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 
 	def start_doc(self, title, onload_focus = None):
 		self.send_response(200)
-		self.send_header('Content-type', 'text/html')
+		self.send_header('Content-type', 'text/html;charset=UTF-8')
 		self.end_headers()
 		
 		if title != '':
