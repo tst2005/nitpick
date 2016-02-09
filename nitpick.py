@@ -95,7 +95,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		self.send_header('Content-type', 'text/css;charset=UTF-8')
 		self.end_headers()
 
-		localcss_path = config.db_path + '/local.css'
+		localcss_path = config.db_path + '/custom.css'
 		if os.path.exists(localcss_path):
                         lcss = open(localcss_path, 'r')
 			self.output(lcss.read())
@@ -376,9 +376,10 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 			<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 				<head>
+					<meta charset='utf-8' />
 					<link rel="icon" href="http://localhost:18080/favicon.ico" />
 					<link rel="stylesheet" href="/css.css" type="text/css" title="Default Style" media="screen" />
-					<link rel="stylesheet" href="/local.css" type="text/css" title="Local Custom Style" media="screen" />
+					<link rel="stylesheet" href="/custom.css" type="text/css" media="screen" />
 					<title>%s</title>
 				</head>
 			<body %s>
@@ -483,7 +484,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		self.start_doc('')
 
 		if not config.readonly:
-			self.output('<p><a href="/new_issue%s">Create new issue</a>\n' % self.session_query())
+			self.output('<p><a href="/new_issue%s" class="button_create_issue">Create new issue</a>\n' % self.session_query())
 
 		if config.use_schedule:
 			self.output(' <a href="/schedule%s">Show Schedule</a></p>\n' % self.session_query())
@@ -2058,7 +2059,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			self.js()
 		elif '/css.css' == self.path:
 			self.css()
-		elif '/local.css' == self.path:
+		elif '/custom.css' == self.path:
 			self.localcss()
 		else:
 			print "Got unhandled get path %s" % self.path
