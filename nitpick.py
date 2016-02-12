@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
 # 
 # Copyright (C) 2012-2014  Travis Brown (travisb@travisbrown.ca)
 # 
@@ -14,6 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+from __future__ import absolute_import, division, print_function
+
+def PRINT(*arg):
+	print( *arg )
 
 import os
 import os.path
@@ -398,7 +404,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			</body></html>""" % js
 
 	def output(self, string):
-		self.wfile.write(string)
+		self.wfile.write(string.encode('utf-8') )
 
 	def start_doc(self, title, onload_focus = None):
 		self.send_response(200)
@@ -547,11 +553,10 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			else:
 				return session_settings[arg_name]
 
+		show_ID            = extract_show_field_arg('show_ID',            show_ID)
 		if db.has_foreign():
 			show_repo  = extract_show_field_arg('show_repo',          show_repo)
-		show_ID            = extract_show_field_arg('show_ID',            show_ID)
 		show_type          = extract_show_field_arg('show_type',          show_type)
-		show_date          = extract_show_field_arg('show_date',          show_date)
 		show_severity      = extract_show_field_arg('show_severity',      show_severity)
 		show_priority      = extract_show_field_arg('show_priority',      show_priority)
 		show_component     = extract_show_field_arg('show_component',     show_component)
@@ -561,6 +566,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		show_resolution    = extract_show_field_arg('show_resolution',    show_resolution)
 		show_owner         = extract_show_field_arg('show_owner',         show_owner)
 		show_title         = extract_show_field_arg('show_title',         show_title)
+		show_date          = extract_show_field_arg('show_date',          show_date)
 
 		def extract_filter_arg(arg_name, arg_val):
 			if not load_settings:
@@ -635,34 +641,43 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		self.output('<input type="hidden" name="sort_field" value="%s"/>\n' % sort_field)
 		self.output('<input type="hidden" name="reverse_sort" value="%s"/>\n' % reverse_sort)
 
+# bugzilla columns :
+# ID 		Product 	Comp 		Assignee(==Owner) 	Status(==State)  	Resolution 	Summary 	Changed(==Date)
+
 		# Which fields to display
 		def output_field_selectors(label, arg_name, bool):
-			self.output('<div class="field_select_item"><label>%s:</label><input type="checkbox" name="%s" value="1" ' % (label, arg_name))
-			if bool:
-				self.output('checked="checked"')
-			self.output('/></div>\n')
+#			self.output('<div class="field_select_item"><label>%s:</label><input type="checkbox" name="%s" value="1" ' % (label, arg_name))
+#			if bool:
+#				self.output('checked="checked"')
+#			self.output('/></div>\n')
+
+#			self.output('<div class="field_select_item"><label>%s:</label><input type="checkbox" name="%s" value="1" %s/></div>\n' % (label, arg_name, ( 'checked="checked" ' if bool else '')))
+			self.output('<div class="field_select_item"><input type="checkbox" name="%s" value="1" %s/><label>%s</label> ; </div>\n' % (arg_name, ( 'checked="checked" ' if bool else ''), label))
+
 
 		self.output('<div class="field_select_box">\n')
-		self.output('Select Fields to Display<br/>\n')
-		if db.has_foreign():
-			output_field_selectors('Project',  'show_repo',          show_repo)
+		self.output('Select Fields to Display :<br/>\n')
 		output_field_selectors('ID',            'show_ID',            show_ID)
 		output_field_selectors('Type',          'show_type',          show_type)
-		output_field_selectors('Date',          'show_date',          show_date)
-		output_field_selectors('Severity',      'show_severity',      show_severity)
-		output_field_selectors('Priority',      'show_priority',      show_priority)
+		if db.has_foreign():
+			output_field_selectors('Project',  'show_repo',          show_repo)
 		output_field_selectors('Component',     'show_component',     show_component)
-		output_field_selectors('Fix_By',        'show_fix_by',        show_fix_by)
-		output_field_selectors('Seen_In_Build', 'show_seen_in_build', show_seen_in_build)
+		output_field_selectors('Owner',         'show_owner',         show_owner)
 		output_field_selectors('State',         'show_state',         show_state)
 		output_field_selectors('Resolution',    'show_resolution',    show_resolution)
-		output_field_selectors('Owner',         'show_owner',         show_owner)
 		output_field_selectors('Title',         'show_title',         show_title)
+		output_field_selectors('Date',          'show_date',          show_date)
+
+		output_field_selectors('Severity',      'show_severity',      show_severity)
+		output_field_selectors('Priority',      'show_priority',      show_priority)
+		output_field_selectors('Fix_By',        'show_fix_by',        show_fix_by)
+		output_field_selectors('Seen_In_Build', 'show_seen_in_build', show_seen_in_build)
+
 		self.output('</div>\n')
 
 		# Filters
 		def output_filter_options(label, option_name, option_list, selected_list):
-			self.output('<div class="filter_select_item"><label>%s:</label><select name="%s" multiple="multiple" size="5">\n' % (label, option_name))
+			self.output('<div class="filter_select_item"><label>%s:<br /></label><select name="%s" multiple="multiple" size="5">\n' % (label, option_name))
 			for option in option_list:
 				self.output('<option ')
 				if option in selected_list or selected_list == []:
@@ -670,22 +685,29 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 				self.output('value="%s">%s</option>\n' % (option, option))
 			self.output('</select></div>\n')
 
+		def output_filter_options_labelonly(label):
+			self.output( '<div class="filter_select_item"><label>%s:<br />all</label></div>\n' % (label) )
+
 		self.output('<div class="filter_select_box">\n')
+		output_filter_options_labelonly('ID')
+		output_filter_options('Type',       'filter_type',       config.issues['type'],       filter_type)
 		if db.has_foreign():
 			output_filter_options('Project', 'filter_repo', db.repos(),                filter_repo)
 		output_filter_options('Components', 'filter_components', config.issues['components'], filter_components)
-		output_filter_options('Fix_By',     'filter_fix_by',     config.issues['fix_by'],     filter_fix_by)
-		output_filter_options('Severity',   'filter_severity',   config.issues['severity'],   filter_severity)
-		output_filter_options('Priority',   'filter_priority',   config.issues['priority'],   filter_priority)
-		output_filter_options('State',      'filter_state',      config.issues['state'],      filter_state)
-		output_filter_options('Resolution', 'filter_resolution', config.issues['resolution'], filter_resolution)
-		output_filter_options('Type',       'filter_type',       config.issues['type'],       filter_type)
 
 		possible_owners = []
 		if config.username != '':
 			possible_owners = [config.username]
 		possible_owners.extend(config.users)
 		output_filter_options('Owner', 'filter_owner', possible_owners, filter_owner)
+		output_filter_options('State',      'filter_state',      config.issues['state'],      filter_state)
+		output_filter_options('Resolution', 'filter_resolution', config.issues['resolution'], filter_resolution)
+		output_filter_options_labelonly('Title')
+		output_filter_options_labelonly('Date')
+		output_filter_options('Fix_By',     'filter_fix_by',     config.issues['fix_by'],     filter_fix_by)
+		output_filter_options('Severity',   'filter_severity',   config.issues['severity'],   filter_severity)
+		output_filter_options('Priority',   'filter_priority',   config.issues['priority'],   filter_priority)
+		output_filter_options_labelonly('Seen_In_Build')
 		self.output('</div>\n')
 
 		if config.readonly:
@@ -707,16 +729,16 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 				if sort_field == label and not reverse_sort:
 					myargs['sort_field'] = label
 					myargs['reverse_sort'] = True
-					sort_token = '^'
+					sort_token = u'▲' # '^'
 				elif sort_field == label and reverse_sort:
 					myargs['sort_field'] = ''
 					myargs['reverse_sort'] = False
-					sort_token = 'v'
+					sort_token = u'▼' # 'v'
 				elif sort_field != label:
 					myargs['sort_field'] = label
 					myargs['reverse_sort'] = False
 				else:
-					print 'Unknown sort_field/label/reverse combo %s/%s/%s' % (myargs['sort_field'], label, reverse_sort)
+					PRINT( 'Unknown sort_field/label/reverse combo %s/%s/%s' % (myargs['sort_field'], label, reverse_sort) )
 
 				arg_string = '?'
 				for argname in myargs.keys():
@@ -739,21 +761,21 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 
 				self.output('<th class="issue_list"%s><a href="/%s">%s&nbsp;%s&nbsp;%s</a></th> ' % (hidden, arg_string, sort_token, label, sort_token))
 
-		if db.has_foreign():
-			output_row_header(show_repo,  'Project', page_args)
 		output_row_header(show_ID,            'ID', page_args)
 		output_row_header(show_type,          'Type', page_args)
-		output_row_header(show_date,          'Date', page_args)
-		output_row_header(show_severity,      'Severity', page_args)
-		output_row_header(show_priority,      'Priority', page_args)
+		if db.has_foreign():
+			output_row_header(show_repo,  'Project', page_args)
 		output_row_header(show_component,     'Component', page_args)
-		output_row_header(show_fix_by,        'Fix_By', page_args)
-		output_row_header(show_seen_in_build, 'Seen_In_Build', page_args)
+		output_row_header(show_owner,         'Owner', page_args)
 		output_row_header(show_state,         'State', page_args)
 		output_row_header(show_resolution,    'Resolution', page_args)
-		output_row_header(show_owner,         'Owner', page_args)
 		output_row_header(show_title,         'Title', page_args)
+		output_row_header(show_date,          'Date', page_args)
 
+		output_row_header(show_severity,      'Severity', page_args)
+		output_row_header(show_priority,      'Priority', page_args)
+		output_row_header(show_fix_by,        'Fix_By', page_args)
+		output_row_header(show_seen_in_build, 'Seen_In_Build', page_args)
 
 		def skip_filter(issue, key, accept_list):
 			if accept_list != [] and db.issue(issue)[key] not in accept_list:
@@ -827,7 +849,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			if sort_field == 'ID':
 				return issue
 
-			print 'Unhandled sort_field "%s"' % sort_field
+			PRINT( 'Unhandled sort_field "%s"' % sort_field )
 			return issue
 
 		self.output('</tr>\n')
@@ -869,23 +891,25 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 			self.output('<tr class="issue_list_tr%d">' % row_colour)
 			row_colour = (row_colour + 1) % 2
 
-			if db.has_foreign():
-				output_field(issue, show_repo,  'Project',       db.issue(issue)['repo'])
 			output_field(issue, show_ID,            'ID',            issue[:8])
 			output_field(issue, show_type,          'Type',          db.issue(issue)['Type'])
+			if db.has_foreign():
+				output_field(issue, show_repo,  'Project',       db.issue(issue)['repo'])
+			output_field(issue, show_component,     'Component',     db.issue(issue)['Component'])
+			output_field(issue, show_owner,         'Owner',         db.issue(issue)['Owner'])
+			output_field(issue, show_state,         'State',         db.issue(issue)['State'])
+			output_field(issue, show_resolution,    'Resolution',    db.issue(issue)['Resolution'])
+
+			output_field(issue, show_title,          'Title',        db.issue(issue)['Title'])
 			if 'localdate' in db.issue(issue):
 				output_field(issue, show_date,  'Date',          db.issue(issue)['localdate'])
 			else:
 				output_field(issue, show_date,  'Date',          db.issue(issue)['Date'])
+
 			output_field(issue, show_severity,      'Severity',      db.issue(issue)['Severity'])
 			output_field(issue, show_priority,      'Priority',      db.issue(issue)['Priority'])
-			output_field(issue, show_component,     'Component',     db.issue(issue)['Component'])
 			output_field(issue, show_fix_by,        'Fix_By',        db.issue(issue)['Fix_By'])
 			output_field(issue, show_seen_in_build, 'Seen_In_Build', db.issue(issue)['Seen_In_Build'])
-			output_field(issue, show_state,         'State',         db.issue(issue)['State'])
-			output_field(issue, show_resolution,    'Resolution',    db.issue(issue)['Resolution'])
-			output_field(issue, show_owner,         'Owner',         db.issue(issue)['Owner'])
-			output_field(issue, show_title,          'Title',        db.issue(issue)['Title'])
 
 			self.output('</tr>\n')
 
@@ -2031,7 +2055,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 	def do_GET(self):
-		#print 'got get  path %s' % self.path
+		#PRINT( 'got get  path %s' % self.path )
 
 		self.parse_path_args()
 
@@ -2062,11 +2086,11 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		elif '/custom.css' == self.path:
 			self.localcss()
 		else:
-			print "Got unhandled get path %s" % self.path
+			PRINT( "Got unhandled get path %s" % self.path )
 			self.root()
 
 	def do_POST(self):
-		#print 'got post path %s' % self.path
+		#PRINT( 'got post path %s' % self.path )
 
 		self.parse_path_args()
 
@@ -2104,7 +2128,7 @@ class nitpick_web(BaseHTTPServer.BaseHTTPRequestHandler):
 		elif '/revert' == self.path:
 			self.revert_post()
 		else:
-			print 'Got unhandled post path %s' % self.path
+			PRINT( 'Got unhandled post path %s' % self.path )
 			self.root()
 
 
@@ -2426,13 +2450,13 @@ def load_config():
 	else:
 		# Try to match the current user against the username list
 		if 'USER' not in os.environ:
-			print "Warning: Unable to determine username. Please set NITPICK_USERNAME"
+			PRINT( "Warning: Unable to determine username. Please set NITPICK_USERNAME" )
 		else:
 			user = os.environ['USER']
 			for row in config.users:
 				if user in row:
 					if config.username != '':
-						print "Warning: Unable to determine username. Please set NITPICK_USERNAME"
+						PRINT( "Warning: Unable to determine username. Please set NITPICK_USERNAME" )
 						break
 					else:
 						config.username = row
@@ -2538,7 +2562,7 @@ class IssueDB:
 					uuid_file.close()
 				except:
 					# If loading the foreign project fails warn and carry on
-					print 'WARNING: Unableto load foreign project "%s"' % foreign_repo
+					PRINT( 'WARNING: Unableto load foreign project "%s"' % foreign_repo )
 					continue
 
 
@@ -2853,10 +2877,10 @@ class IssueDB:
 
 		issue = self.disambiguate_hash(issue)
 		if issue == None:
-			print' No such issue'
+			PRINT( 'No such issue' )
 			return False
 		elif issue == '':
-			print "Ambiguous issue ID. Please use a longer string"
+			PRINT( "Ambiguous issue ID. Please use a longer string" )
 			return False
 
 		issue_filename = self.issue(issue)['path'] + '/issue'
@@ -2968,7 +2992,7 @@ def schedule_all_tasks():
 
 		if i in visited_issues:
 			if debug_scheduling:
-				print "Dependency loop detected in issues %s. Not recursing" % i.hash
+				PRINT( "Dependency loop detected in issues %s. Not recursing" % i.hash )
 			return None
 		else:
 			visited_issues.append(i)
@@ -3042,8 +3066,8 @@ def schedule_all_tasks():
 
 		for user in timelines.keys():
 			for issue in timelines[user]:
-				print 'User: %s Issue %s Start: %s End: %s' % (user, issue.hash,
-						issue.sched_start_date, issue.sched_end_date)
+				PRINT( 'User: %s Issue %s Start: %s End: %s' % (user, issue.hash,
+						issue.sched_start_date, issue.sched_end_date) )
 	print_schedule()
 
 	# Now we go through, again following the topological sort, to fix up any dates which don't
@@ -3063,7 +3087,7 @@ def schedule_all_tasks():
 			dependency_finish_date.append(timelines[issue.owner][queue_num - 1].sched_end_date)
 
 		if debug_scheduling:
-			print issue.hash, queue_num, dependency_finish_date
+			PRINT( issue.hash, queue_num, dependency_finish_date )
 		
 		if dependency_finish_date == []:
 			dependency_finish_date = move_to_workday(today, issue.owner_production) - one_day
@@ -3113,28 +3137,28 @@ def schedule_all_tasks():
 				i = 0
 			else:
 				i = index
-			print 'Starting %s at %s %s' % (user, start_date, timelines[user][i].sched_start_date)
+			PRINT( 'Starting %s at %s %s' % (user, start_date, timelines[user][i].sched_start_date) )
 
 		if index == -1:
 			if timelines[user] == []:
 				# The user_list as just been created and the user has no task assigned,
 				# remove them
 				if debug_scheduling:
-					print "User %s has no tasks" % user
+					PRINT( "User %s has no tasks" % user )
 				del user_list[user]
 				return
 			else:
 				index = 0
 				if start_date < timelines[user][index].sched_start_date:
 					if debug_scheduling:
-						print 'There is a gap at the beginning, using it'
+						PRINT( 'There is a gap at the beginning, using it' )
 					user_list[user] = (start_date, index)
 					return
 
 		start_date = move_to_workday(start_date, timelines[user][0].owner_production)
 		
 		if debug_scheduling:
-			print start_date, timelines[user][index].sched_start_date
+			PRINT( start_date, timelines[user][index].sched_start_date )
 
 		first_time = True # Ensure that we always make progress
 		while first_time or start_date >= timelines[user][index].sched_start_date:
@@ -3147,20 +3171,20 @@ def schedule_all_tasks():
 				# There are no scheduled tasks beyond the last gap, so this user is
 				# done. Remove them.
 				if debug_scheduling:
-					print "Reached end of queue for user %s" % user
+					PRINT( "Reached end of queue for user %s" % user )
 				del user_list[user]
 				return
 
 			user_list[user] = (start_date, index)
 		if debug_scheduling:
-			print 'Finishing at %s' % start_date
+			PRINT( 'Finishing at %s' % start_date )
 
 	user_list = {user: (today, -1) for user in timelines.keys()}
 	for user in user_list.keys():
 		get_next_gap(user, user_list, timelines)
 
 	if debug_scheduling:
-		print "starting userlist", user_list
+		PRINT( "starting userlist", user_list )
 
 	while len(user_list.keys()) > 0:
 		# Find the user with the nearest gap start
@@ -3170,7 +3194,7 @@ def schedule_all_tasks():
 				user = u
 
 		if debug_scheduling:
-			print 'Traverting user %s' % user
+			PRINT( 'Traverting user %s' % user )
 
 		gap_start = user_list[user][0]
 		gap_index = user_list[user][1]
@@ -3184,7 +3208,7 @@ def schedule_all_tasks():
 		gap_end -= one_day
 
 		if debug_scheduling:
-			print "gap start", gap_start, 'gap end', gap_end, 'gap length', gap_length
+			PRINT( "gap start", gap_start, 'gap end', gap_end, 'gap length', gap_length )
 		
 		# Find first task which will fit into this gap and is allowed by the dependency
 		# graph. This is suboptimal, but an optimal choice would likely require dynamic
@@ -3197,17 +3221,17 @@ def schedule_all_tasks():
 			t = timelines[user][i]
 
 			if debug_scheduling:
-				print 'checking task %s' % t.hash[:8]
+				PRINT( 'checking task %s' % t.hash[:8] )
 
 			if t.work_units > gap_length:
 				if debug_scheduling:
-					print 'Rejecting due to gap length %f %f' % (t.work_units, gap_length)
+					PRINT( 'Rejecting due to gap length %f %f' % (t.work_units, gap_length) )
 				continue
 
 			dependency_dates = [j.sched_end_date for j in t.depends_on]
 			if len(dependency_dates) > 0 and max(dependency_dates) >= gap_end:
 				if debug_scheduling:
-					print 'Rejecting due to dependency', max(dependency_dates), gap_end
+					PRINT( 'Rejecting due to dependency', max(dependency_dates), gap_end )
 				continue
 
 			# We now know that the task will fit if it starts at the beginning of the
@@ -3224,7 +3248,7 @@ def schedule_all_tasks():
 			if l < t.work_units:
 				# Turns out it can't be finished
 				if debug_scheduling:
-					print 'Rejecting due to mid-gap length', t.work_units, l
+					PRINT( 'Rejecting due to mid-gap length', t.work_units, l )
 				continue
 		
 			# This task fits, use it
@@ -3235,7 +3259,7 @@ def schedule_all_tasks():
 	
 		if task != None:
 			if debug_scheduling:
-				print 'using task %s' % task.hash[:8]
+				PRINT( 'using task %s' % task.hash[:8] )
 
 			# Put the task we found into the gap and continue
 			del timelines[user][task_index]
@@ -3246,7 +3270,7 @@ def schedule_all_tasks():
 			compute_task_end_date(task)
 		else:
 			if debug_scheduling:
-				print 'No task fits this gap'
+				PRINT( 'No task fits this gap' )
 
 		print_schedule()
 		get_next_gap(user, user_list, timelines)
@@ -3262,7 +3286,7 @@ def schedule_all_tasks():
 			task.sched_end_date -= one_day
 
 	if debug_scheduling:
-		print "Final schedule"
+		PRINT( "Final schedule" )
 		print_schedule()
 	return timelines
 
@@ -3276,7 +3300,7 @@ def editor_found():
 	elif 'VISUAL' in os.environ:
 		return os.editor['VISUAL']
 	else:
-		print 'Editor not found in $EDITOR, please set this variable and try again'
+		PRINT( 'Editor not found in $EDITOR, please set this variable and try again' )
 		return None
 
 def cmd_init(args):
@@ -3325,7 +3349,7 @@ def cmd_new(args):
 		return False
 
 	if config.username == '':
-		print 'Failed to determine username, please set NITPICK_USERNAME'
+		PRINT( 'Failed to determine username, please set NITPICK_USERNAME' )
 		return False
 
 	issue = {
@@ -3351,7 +3375,7 @@ def cmd_new(args):
 	result = os.system(editor + ' ' + config.db_path + 'new.tmp')
 
 	if result != 0:
-		print 'Creating issue aborted'
+		PRINT( 'Creating issue aborted' )
 		os.unlink(config.db_path + 'new.tmp')
 		return True
 
@@ -3363,7 +3387,7 @@ def cmd_new(args):
 	issue_filename, issue_hash = db.add_issue(issue)
 	db.save_issue_db()
 
-	print 'Created issue %s' % issue_hash
+	PRINT( 'Created issue %s' % issue_hash )
 
 	if not args.no_commit:
 		return config.vcs.commit()
@@ -3390,7 +3414,7 @@ def cmd_list(args):
 			printhash = hash
 		else:
 			printhash = hash[:8]
-		print "%s (%s): %s" % (printhash, db.issue(hash)['State'], db.issue(hash)['Title'])
+		PRINT( "%s (%s): %s" % (printhash, db.issue(hash)['State'], db.issue(hash)['Title']) )
 	return True
 
 def cmd_cat(args):
@@ -3401,47 +3425,47 @@ def cmd_cat(args):
 
 	hash = db.disambiguate_hash(args.issue)
 	if hash == None:
-		print "No such issue"
+		PRINT( "No such issue" )
 		return False
 	elif hash == '':
-		print "Ambiguous issue ID. Please use a longer string"
+		PRINT( "Ambiguous issue ID. Please use a longer string" )
 		return False
 
 	issue = parse_file(config.db_path + hash[0] + '/' + hash[1] + '/' + hash + '/issue')
 
 	if not args.noformat:
-		print '+' + '=' * FILLWIDTH
+		PRINT( '+' + '=' * FILLWIDTH )
 
 	for key in issue.keys():
 		if key in ['content', 'Duplicate_Of']:
 			continue
 
 		if not args.noformat:
-			print '|',
-		print "%s: %s" % (key, issue[key])
+			print( '|', )
+		PRINT( "%s: %s" % (key, issue[key]) )
 
 	if not args.noformat:
-		print '|',
-	print "Dependent_Of: %s" % db.issue_dependent_of(hash)
+		PRINT( '|', )
+	PRINT( "Dependent_Of: %s" % db.issue_dependent_of(hash) )
 
 	if not args.noformat:
-		print '|',
-	print "Duplicate_Of: %s" % db.get_issue_duplicates(hash)
+		PRINT( '|', )
+	PRINT( "Duplicate_Of: %s" % db.get_issue_duplicates(hash) )
 
 	if 'content' in issue.keys():
 		if not args.noformat:
-			print '+' + '-' * FILLWIDTH
-			print '|',
+			PRINT( '+' + '-' * FILLWIDTH )
+			PRINT( '|', )
 		else:
-			print '--'
+			PRINT( '--' )
 
 		if not args.noformat:
-			print '\n| '.join(issue['content'].split('\n'))
+			PRINT( '\n| '.join(issue['content'].split('\n')) )
 		else:
-			print issue['content']
+			PRINT( issue['content'] )
 
 		if not args.noformat:
-			print '+' + '=' * FILLWIDTH
+			PRINT( '+' + '=' * FILLWIDTH )
 
 	comment_stack = db.produce_comment_tree(hash)
 	comment_stack.reverse()
@@ -3457,7 +3481,7 @@ def cmd_cat(args):
 
 
 		if not args.noformat and old_depth > depth:
-			print '  ' * depth + '+' + '=' * FILLWIDTH
+			PRINT( '  ' * depth + '+' + '=' * FILLWIDTH )
 
 		for key in comment.keys():
 			if key in ['content', 'children', 'Parent', 'localdate']:
@@ -3466,28 +3490,28 @@ def cmd_cat(args):
 				continue
 
 			if not args.noformat:
-				print '  ' * depth + '|',
+				PRINT( '  ' * depth + '|', )
 
 			value = comment[key]
 
 			if key == 'Date' and 'localdate' in comment.keys():
 				value = comment['localdate']
 
-			print "%s: %s" % (key, value)
+			PRINT( "%s: %s" % (key, value) )
 		if 'content' in comment.keys():
 			if not args.noformat:
-				print '  ' * depth + '+' + '-' * FILLWIDTH
+				PRINT( '  ' * depth + '+' + '-' * FILLWIDTH )
 			else:
-				print '--'
+				PRINT( '--' )
 
 			if not args.noformat:
-				print '  ' * depth + '| ',
-				print ('\n' + '  ' * depth + '| ').join(comment['content'].split('\n'))
+				PRINT( '  ' * depth + '| ', )
+				PRINT( ('\n' + '  ' * depth + '| ').join(comment['content'].split('\n')) )
 			else:
-				print comment['content']
+				PRINT( comment['content'] )
 
 			if not args.noformat:
-				print '  ' * depth + '+' + '=' * FILLWIDTH
+				PRINT( '  ' * depth + '+' + '=' * FILLWIDTH )
 
 		comment['children'].reverse()
 		comment_stack.extend(comment['children'])
@@ -3509,26 +3533,26 @@ def cmd_comment(args):
 		return False
 
 	if config.username == '':
-		print 'Failed to determine username. Please set NITPICK_USERNAME'
+		PRINT( 'Failed to determine username. Please set NITPICK_USERNAME' )
 		return False
 
 	load_db()
 
 	comment_parent = db.find_comment_parent(args.issue, args.comment)
 	if comment_parent == None:
-		print 'No such issue'
+		PRINT( 'No such issue' )
 		return False
 	elif comment_parent == '':
-		print 'Ambiguous issue ID. Please use a longer string'
+		PRINT( 'Ambiguous issue ID. Please use a longer string' )
 		return False
 	else:
 		issue = comment_parent[0]
 		parent = comment_parent[1]
 		if parent == None:
-			print 'No such comment.'
+			PRINT( 'No such comment.' )
 			return False
 		elif parent == '':
-			print 'Ambiguous comment ID. Please use a longer string'
+			PRINT( 'Ambiguous comment ID. Please use a longer string' )
 			return False
 
 	comment = {
@@ -3543,7 +3567,7 @@ def cmd_comment(args):
 	result = os.system(editor + ' ' + comment_filename)
 
 	if result != 0:
-		print 'Comment aborted'
+		PRINT( 'Comment aborted' )
 		os.unlink(comment_filename)
 		return True
 
@@ -3652,13 +3676,13 @@ def cmd_owner(args):
 	for row in config.users:
 		if args.newowner in row:
 			if fulluser != '':
-				print "Ambiguous user. Please be more specific"
+				PRINT( "Ambiguous user. Please be more specific" )
 				return False
 			else:
 				fulluser = row
 
 	if fulluser == '':
-		print "Unknown user"
+		PRINT( "Unknown user" )
 		return False
 
 	if db.change_issue(args.issue, 'Owner', fulluser):
@@ -3674,7 +3698,7 @@ def cmd_users(args):
 		return False
 
 	for user in config.users:
-		print user
+		PRINT( user )
 	return True
 
 def cmd_web(args):
@@ -3693,7 +3717,7 @@ def cmd_web(args):
 	else:
 		config.allowshutdown = False
 
-	print 'Starting server on localhost:%d' % args.port
+	PRINT( 'Starting server on localhost:%d' % args.port )
 
 	def get_process_list():
 		ps = subprocess.Popen("ps -u$USER", shell=True, stdout=subprocess.PIPE)
@@ -3867,13 +3891,13 @@ def cmd_export(args):
 
 	hash = db.disambiguate_hash(args.issue)
 	if hash == None:
-		print "No such issue"
+		PRINT( "No such issue" )
 		return False
 	elif hash == '':
-		print "Ambiguous issue ID. Please use a longer string"
+		PRINT( "Ambiguous issue ID. Please use a longer string" )
 		return False
 
-	print format_issue_for_export(hash)
+	PRINT( format_issue_for_export(hash) )
 
 	return True
 
@@ -3896,7 +3920,7 @@ def cmd_import(args):
 			# UTC time
 			timestamp = datetime.datetime.strptime(date[:19], '%Y-%m-%dT%H:%M:%S')
 		else:
-			print 'Unsupported timestamp format "%s".' % date
+			PRINT( 'Unsupported timestamp format "%s".' % date )
 
 		return time.strftime(DATEFORMAT, timestamp.timetuple())
 
@@ -3991,8 +4015,8 @@ def cmd_schedule(args):
 			else:
 				action = 'Continue'
 
-			print 'User: %-25s Issue: %s %s: %s End: %s' % (user, issue.hash[:8], action,
-					issue.sched_start_date, issue.sched_end_date)
+			PRINT( 'User: %-25s Issue: %s %s: %s End: %s' % (user, issue.hash[:8], action,
+					issue.sched_start_date, issue.sched_end_date) )
 	
 	return True
 
@@ -4113,7 +4137,7 @@ if __name__ == '__main__':
 	result = args.func(args)
 
 	if not result:
-		print "Command failed"
+		PRINT( "Command failed" )
 		sys.exit(1)
 	else:
 		sys.exit(0)
